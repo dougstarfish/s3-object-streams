@@ -38,8 +38,15 @@ set -euo pipefail
 #
 #********************************************************
 
+#*******************************************************
+# Change Log
+# v1.04 May 1, 2018 - Updated parsing of output to accomodate multiple lines  
+#                   - Added emailfrom option and variable.
+
+
+
 # Set variables
-readonly VERSION="1.03 January 12, 2018"
+readonly VERSION="1.04 May 1, 2018"
 readonly PROG="${0##*/}"
 readonly SFHOME="${SFHOME:-/opt/starfish}"
 readonly LOGDIR="$SFHOME/log/${PROG%.*}"
@@ -48,7 +55,8 @@ readonly NOW=$(date +"%Y%m%d-%H%M%S")
 readonly LOGFILE="${LOGDIR}/$(basename ${BASH_SOURCE[0]} '.sh')-$NOW.log"
 
 # global variables
-EMAILS=""
+EMAILTO=""
+EMAILFROM="root"
 LOG_EMAIL_CONTENT=""
 VERBOSE=0
 CHECK_UNIQUE_FILE_SIZE=""
@@ -66,11 +74,11 @@ logprint () {
 }
 
 email_alert() {
-  (echo -e "$1") | mailx -s "$PROG Failed!" -a $LOGFILE -r root sf-status@starfishstorage.com,$EMAILS
+  (echo -e "$1") | mailx -s "$PROG Failed!" -a $LOGFILE -r $EMAILFROM $EMAILTO
 }
 
 email_notify() {
-  (echo -e "$1") | mailx -s "$PROG Completed Successfully" -r root $EMAILS
+  (echo -e "$1") | mailx -s "$PROG Completed Successfully" -r $EMAILFROM $EMAILTO
 }
 
 fatal() {
@@ -129,6 +137,7 @@ options:
   --resume-from-dir DIR
                         Path to directory with logs from previous execution
   --tmp-dir DIR         Directory used to keep temporary files
+  --from <email>	Specify email from address (default=root)
 
 Examples:
 $PROG --log "/opt/starfish/log/${PROG%.*}-%Y%m%d-%H%M%S.log" --check-unique-file-size sfvol:
@@ -148,10 +157,15 @@ EOF
 parse_input_parameters() {
   while [[ $# -gt 0 ]]; do
     case $1 in
-    "--email"|"--emails")
+    "--email"|"--email")
       check_parameters_value "$@"
       shift
-      EMAILS=($1)
+      EMAILTO=($1)
+      ;;
+    "--from")
+      check_parameters_value "$@"
+      shift
+      EMAILFROM=$1
       ;;
     "-v"|"--verbose")
       VERBOSE=1
@@ -195,7 +209,8 @@ parse_input_parameters() {
     esac;
     shift
   done
-  logprint "emails: $EMAILS"
+  logprint "email to: $EMAILTO"
+  logprint "email from: $EMAILFROM"
   logprint "log email content: $LOG_EMAIL_CONTENT"
   logprint "verbose: $VERBOSE"
   logprint "check_unique_file_size: $CHECK_UNIQUE_FILE_SIZE"
@@ -210,7 +225,7 @@ parse_input_parameters() {
 }
 
 verify_required_params() {
-if [[ "$EMAILS" == "" ]] && [[ "$LOG_EMAIL_CONTENT" == "" ]]; then
+if [[ "$EMAILTO" == "" ]] && [[ "$LOG_EMAIL_CONTENT" == "" ]]; then
   logprint "Neither email or log was specified, exiting.."
   echo "Neither email or log was specified, exiting.."
   usage
@@ -220,7 +235,7 @@ fi
 
 build_cmd_line() {
   MIN_SIZE_CMD="--min-size=$MIN_SIZE"
-  CMD_TO_RUN="${SF}/duplicate_check $CHECK_UNIQUE_FILE_SIZE $JSON $MIN_SIZE_CMD $RESUME_FROM_DIR $TMP_DIR $HIDDEN_OPTIONS $VOLUMES"
+  CMD_TO_RUN="$SF/duplicate_check $CHECK_UNIQUE_FILE_SIZE $JSON $MIN_SIZE_CMD $RESUME_FROM_DIR $TMP_DIR $HIDDEN_OPTIONS $VOLUMES"
   logprint "command to run: $CMD_TO_RUN"
 }
 
@@ -228,7 +243,7 @@ run_duplicate_check() {
   local errorcode
   STARTTIME=$(date +"%H:%M:%S %m/%d/%Y")
   set +e
-  CMD_OUTPUT=$($CMD_TO_RUN 2>&1)
+  mapfile -t CMD_OUTPUT < <( $CMD_TO_RUN 2>&1 )
   errorcode=$?
   set -e
   if [[ $errorcode -ne 0 ]]; then
@@ -241,9 +256,14 @@ run_duplicate_check() {
 }
 
 parse_output(){
-  IFS=','
-  read -ra OUTPUTARRAY <<< "$CMD_OUTPUT"
-  unset IFS
+  for line in "${CMD_OUTPUT[@]}"
+    do
+      if [[ ${line:0:1} == "{" ]]; then
+        IFS=','
+        read -ra OUTPUTARRAY <<< "$line"
+        unset IFS
+      fi
+    done
   COUNT=${OUTPUTARRAY[0]:10}
   DUPLICATE_FILE=${OUTPUTARRAY[1]:20}
   SKIP_COUNT=${OUTPUTARRAY[2]:16}
@@ -327,9 +347,9 @@ The list of duplicate files can be found at: $DUPLICATE_FILE
     echo -e "$BODY" >> $LOG_EMAIL_CONTENT
   fi
 
-  if [ -n "$EMAILS" ]; then
-    logprint "Emailing results to $EMAILS"
-    (echo -e "$BODY") | mailx -s "$SUBJECT" -r root $EMAILS
+  if [ -n "$EMAILTO" ]; then
+    logprint "Emailing results to $EMAILTO"
+    (echo -e "$BODY") | mailx -s "$SUBJECT" -r $EMAILFROM $EMAILTO
   fi
 }
 
@@ -363,9 +383,4 @@ parse_output
 extract_path_and_filename
 determine_scanned_volumes
 generate_email_content
-
-
-
-
-
 
