@@ -247,9 +247,9 @@ run_duplicate_check() {
   errorcode=$?
   set -e
   if [[ $errorcode -ne 0 ]]; then
-    echo -e "duplicate_check command failed. Output follows: $CMD_OUTPUT"
-    logprint "duplicate_check command failed. Output follows: $CMD_OUTPUT"
-    email_alert "duplicate_check command failed. Output follows: $CMD_OUTPUT"
+    echo -e "duplicate_check command failed. Output follows: ${CMD_OUTPUT[@]}"
+    logprint "duplicate_check command failed. Output follows: ${CMD_OUTPUT[@]}"
+    email_alert "duplicate_check command failed. Output follows: ${CMD_OUTPUT[@]}"
     exit 1
   fi
   ENDTIME=$(date +"%H:%M:%S %m/%d/%Y")
