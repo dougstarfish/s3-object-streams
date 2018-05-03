@@ -40,13 +40,11 @@ set -euo pipefail
 
 #*******************************************************
 # Change Log
-# v1.04 May 1, 2018 - Updated parsing of output to accomodate multiple lines  
+# v1.04 May 3, 2018 - Updated parsing of output to accomodate multiple lines  
 #                   - Added emailfrom option and variable.
 
-
-
 # Set variables
-readonly VERSION="1.04 May 1, 2018"
+readonly VERSION="1.04 May 3, 2018"
 readonly PROG="${0##*/}"
 readonly SFHOME="${SFHOME:-/opt/starfish}"
 readonly LOGDIR="$SFHOME/log/${PROG%.*}"
@@ -257,13 +255,13 @@ run_duplicate_check() {
 
 parse_output(){
   for line in "${CMD_OUTPUT[@]}"
-    do
-      if [[ ${line:0:1} == "{" ]]; then
-        IFS=','
-        read -ra OUTPUTARRAY <<< "$line"
-        unset IFS
-      fi
-    done
+  do
+    if [[ ${line:0:1} == "{" ]]; then
+      IFS=','
+      read -ra OUTPUTARRAY <<< "$line"
+      unset IFS
+    fi
+  done
   COUNT=${OUTPUTARRAY[0]:10}
   DUPLICATE_FILE=${OUTPUTARRAY[1]:20}
   SKIP_COUNT=${OUTPUTARRAY[2]:16}
@@ -317,6 +315,8 @@ generate_email_content() {
   local body
   local vol_files
   local vol_size
+  declare -A dup_size
+  declare -A dup_count
   logprint "Generating email/log content"
   read -a volume_array <<< "$VOLUMES"
   for i in "${volume_array[@]}"
@@ -331,6 +331,32 @@ generate_email_content() {
   percent_dup_size=`awk "BEGIN {print ($SIZE * 100 / $total_size)}"`
   percent_dup_count=`awk "BEGIN {print ($COUNT * 100 / $total_files)}"`
   SUBJECT="Duplicate check report for Starfish volumes ($VOLUMES) - $COUNT Duplicates over $MIN_SIZE, occupying $sizegb GB"
+
+###########################
+# development code for counting top duplicates. Keep this section commented out
+#  DUPLICATE_FILE="${DUPLICATE_FILE:1:-1}"
+#  for iterative_hash in $(cat $DUPLICATE_FILE)
+#  do
+#    IFS=','
+#    read -a line_array <<< "$iterative_hash"
+#    dup_count[${line_array[4]},]
+#  for hash in $(sort -t, -k 4 -n $DUPLICATE_FILE | awk -F',' 'seen[$4]++== 1' | awk -F',' {'print $4'})
+#  for unique_hash in $(cat $DUPLICATE_FILE | awk -F',' 'seen[$4]++== 1' | awk -F',' {'print $4'})
+#  do
+#    for iterative_hash in $(cat $DUPLICATE_FILE)
+#    do
+#       IFS=','
+#       read -a
+#    done
+#  done
+
+#    echo $unique_hash
+#    if [[ `awk -F',' -v uh=$unique_hash '{if ($4 == uh)}' $DUPLICATE_FILE` ]]; then
+#        print "match $unique_hash";
+#    fi
+#  done
+#exit 1
+###########################
   BODY="
 Duplicate check started at $STARTTIME, and took $SECONDS seconds to finish. 
 
