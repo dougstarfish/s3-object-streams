@@ -362,7 +362,6 @@ generate_email_content() {
   toptwentysize=$(sort -rVt, -k4 $DUPLICATE_FILE_PATH/${PROG%.*}-report.tmp | awk -F',' '{print "File " $1 " with size of " $2 " bytes has " $3 " duplicates, occupying " $4 " bytes of space "}' | head -n 20)
   set -e
   SUBJECT="Duplicate check report for Starfish volumes ($VOLUMES) - $COUNT Duplicates over $MIN_SIZE, occupying $sizegb GB"
-echo "here5"
   BODY="
 Duplicate check started at $STARTTIME, and took $SECONDS seconds to finish. 
 
