@@ -42,9 +42,14 @@ set -euo pipefail
 # Change Log
 # v1.04 May 3, 2018 - Updated parsing of output to accomodate multiple lines  
 #                   - Added emailfrom option and variable.
+# v1.05 May 4, 2018 - Updated console output
+#                   - Added verification that duplicates were found before moving on
+#                   - Report on top 20 duplicates in terms of count and size
+# v1.06 May 8, 2018 - set +e before mailing so it doesn't crash
+#                   - Add logging
 
 # Set variables
-readonly VERSION="1.04 May 3, 2018"
+readonly VERSION="1.06 May 4, 2018"
 readonly PROG="${0##*/}"
 readonly SFHOME="${SFHOME:-/opt/starfish}"
 readonly LOGDIR="$SFHOME/log/${PROG%.*}"
@@ -244,6 +249,9 @@ run_duplicate_check() {
   mapfile -t CMD_OUTPUT < <( $CMD_TO_RUN 2>&1 )
   errorcode=$?
   set -e
+  logprint "==========="
+  logprint "${CMD_OUTPUT[@]}"
+  logprint "==========="
   if [[ $errorcode -ne 0 ]]; then
     echo -e "duplicate_check command failed. Output follows: ${CMD_OUTPUT[@]}"
     logprint "duplicate_check command failed. Output follows: ${CMD_OUTPUT[@]}"
@@ -260,6 +268,7 @@ parse_output(){
       IFS=','
       read -ra OUTPUTARRAY <<< "$line"
       unset IFS
+      logprint "${OUTPUTARRAY[@]}"
     fi
   done
   COUNT=${OUTPUTARRAY[0]:10}
@@ -272,6 +281,11 @@ parse_output(){
   logprint "Skip Count: $SKIP_COUNT"
   logprint "Size with original files: $SIZE_WITH_ORIGINAL_FILE"
   logprint "Size: $SIZE"
+  if [[ $COUNT == 0 ]]; then
+    logprint "No duplicates found. Exiting.."
+    echo "No duplicates found. Exiting.."
+    exit 1
+  fi
 }
 
 extract_path_and_filename() {
@@ -330,33 +344,24 @@ generate_email_content() {
   sizewithoriginalgb=`awk "BEGIN {print ($SIZE_WITH_ORIGINAL_FILE/(1024*1024*1024))}"`
   percent_dup_size=`awk "BEGIN {print ($SIZE * 100 / $total_size)}"`
   percent_dup_count=`awk "BEGIN {print ($COUNT * 100 / $total_files)}"`
+  DUPLICATE_FILE="${DUPLICATE_FILE:1:-1}"
+  for unique_hash in $(cat $DUPLICATE_FILE | awk -F',' 'seen[$4]++== 1' | awk -F',' {'print $4'})
+  do
+    hash_array+=($unique_hash)
+    dup_count[$unique_hash]=$(awk -F',' -v hash=$unique_hash '{if ($4 == hash) { dc++ }} END { print dc }' $DUPLICATE_FILE)
+    dup_size[$unique_hash]=$(awk -F',' -v hash=$unique_hash '{if ($4 == hash) { ds+=$3 }} END { print ds }' $DUPLICATE_FILE)
+  done
+  for i in ${hash_array[@]}
+  do
+    fn=$(awk -F',' -v hash=$i '{if ($4 == hash) {print $2}}' $DUPLICATE_FILE | awk -F'/' 'seen[$NF]++== 1 {print $NF}')
+    ifsize=$((${dup_size[$i]} / ${dup_count[$i]}))
+    echo "$fn,$ifsize,${dup_count[$i]},${dup_size[$i]}" >> $DUPLICATE_FILE_PATH/${PROG%.*}-report.tmp
+  done
+  set +e
+  toptwentycount=$(sort -rVt, -k3 $DUPLICATE_FILE_PATH/${PROG%.*}-report.tmp | awk -F',' '{print "File " $1 " with size of " $2 " bytes has " $3 " duplicates, occupying " $4 " bytes of space "}' | head -n 20)
+  toptwentysize=$(sort -rVt, -k4 $DUPLICATE_FILE_PATH/${PROG%.*}-report.tmp | awk -F',' '{print "File " $1 " with size of " $2 " bytes has " $3 " duplicates, occupying " $4 " bytes of space "}' | head -n 20)
+  set -e
   SUBJECT="Duplicate check report for Starfish volumes ($VOLUMES) - $COUNT Duplicates over $MIN_SIZE, occupying $sizegb GB"
-
-###########################
-# development code for counting top duplicates. Keep this section commented out
-#  DUPLICATE_FILE="${DUPLICATE_FILE:1:-1}"
-#  for iterative_hash in $(cat $DUPLICATE_FILE)
-#  do
-#    IFS=','
-#    read -a line_array <<< "$iterative_hash"
-#    dup_count[${line_array[4]},]
-#  for hash in $(sort -t, -k 4 -n $DUPLICATE_FILE | awk -F',' 'seen[$4]++== 1' | awk -F',' {'print $4'})
-#  for unique_hash in $(cat $DUPLICATE_FILE | awk -F',' 'seen[$4]++== 1' | awk -F',' {'print $4'})
-#  do
-#    for iterative_hash in $(cat $DUPLICATE_FILE)
-#    do
-#       IFS=','
-#       read -a
-#    done
-#  done
-
-#    echo $unique_hash
-#    if [[ `awk -F',' -v uh=$unique_hash '{if ($4 == uh)}' $DUPLICATE_FILE` ]]; then
-#        print "match $unique_hash";
-#    fi
-#  done
-#exit 1
-###########################
   BODY="
 Duplicate check started at $STARTTIME, and took $SECONDS seconds to finish. 
 
@@ -366,6 +371,13 @@ Duplicate check started at $STARTTIME, and took $SECONDS seconds to finish.
 - Duplicates over $MIN_SIZE occupy $percent_dup_count% of the total file count, and occupy $percent_dup_size% of the total file size within $VOLUMES
 
 The list of duplicate files can be found at: $DUPLICATE_FILE
+
+TOP TWENTY DUPLICATE FILES BY COUNT:
+$toptwentycount
+
+
+TOP TWENTY FILES BY AGGREGATE SIZE:
+$toptwentysize
 "
   if [ -n "$LOG_EMAIL_CONTENT" ]; then
     logprint "Writing output to logfile"
@@ -401,12 +413,27 @@ else
    logprint "Mailx found"
 fi
 
+echo "Step 1: Parse input parameters"
 parse_input_parameters $@
+echo "Step 1 Complete"
+echo "Step 2: Verify prereq's"
 verify_required_params
+echo "Step 2 Complete"
+echo "Step 3: Build command line"
 build_cmd_line
+echo "Step 3 Complete"
+echo "Step 4: Run duplicate check"
 run_duplicate_check
+echo "Step 4 complete"
+echo "Step 5: Parse output"
 parse_output
+echo "Step 5 complete"
+echo "Step 6: Post processing"
 extract_path_and_filename
 determine_scanned_volumes
+echo "Step 6 complete"
+echo "Step 7: Generate email"
 generate_email_content
+echo "Step 7 complete"
+echo "Script complete"
 
