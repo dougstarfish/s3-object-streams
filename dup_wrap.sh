@@ -47,6 +47,7 @@ set -euo pipefail
 #                   - Report on top 20 duplicates in terms of count and size
 # v1.06 May 8, 2018 - set +e before mailing so it doesn't crash
 #                   - Add logging
+# v1.07 June 4, 2018 - Put space after < in for loop in 'extract_path_and_filename' routine (was causing error out on Ubuntu)
 
 # Set variables
 readonly VERSION="1.06 May 4, 2018"
@@ -294,7 +295,7 @@ extract_path_and_filename() {
   unset IFS
   PATHARRAYLENGTH=${#PATHARRAY[@]}
   FILENAME=${PATHARRAY[$PATHARRAYLENGTH-1]}
-  for ((i=1; i<($PATHARRAYLENGTH-1); i++))
+  for ((i=1; i < ($PATHARRAYLENGTH-1); i++))
   do
     DUPLICATE_FILE_PATH="$DUPLICATE_FILE_PATH/${PATHARRAY[i]}"
   done
