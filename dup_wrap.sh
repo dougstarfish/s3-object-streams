@@ -47,7 +47,7 @@ set -eo pipefail
 #                   - Report on top 20 duplicates in terms of count and size
 # v1.06 May 8, 2018 - set +e before mailing so it doesn't crash
 #                   - Add logging
-# v1.07 June 4, 2018 - Put space after < in for loop in 'extract_path_and_filename' routine (was causing error out on Ubuntu)
+# v1.07 June 5, 2018 - Put space after < in for loop in 'extract_path_and_filename' routine (was causing error out on Ubuntu)
 #                    - Update log file syntax
 #                    - Remove set -u at top to accomodate bash 4.3
 
