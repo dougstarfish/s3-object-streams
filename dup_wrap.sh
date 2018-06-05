@@ -120,7 +120,7 @@ $PROG [--email AND/OR --log] [options] VOL:PATH [VOL:PATH ...]]
 NOTE - One or both of the '--email' and '--log' options is required!
 
 Required:
-  --email 		Destination email(s) address (ex. --email "a@a.pl b@b.com")
+  --email 		Destination email(s) address (ex. --email "a@a.pl, b@b.com")
                         If more than one recipient, then quotes are needed around the emails
 
          --- AND/OR ---
