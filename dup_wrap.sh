@@ -48,9 +48,10 @@ set -euo pipefail
 # v1.06 May 8, 2018 - set +e before mailing so it doesn't crash
 #                   - Add logging
 # v1.07 June 4, 2018 - Put space after < in for loop in 'extract_path_and_filename' routine (was causing error out on Ubuntu)
+#                    - Update log file syntax
 
 # Set variables
-readonly VERSION="1.06 May 4, 2018"
+readonly VERSION="1.07 June 5, 2018"
 readonly PROG="${0##*/}"
 readonly SFHOME="${SFHOME:-/opt/starfish}"
 readonly LOGDIR="$SFHOME/log/${PROG%.*}"
@@ -125,9 +126,9 @@ Required:
 
   --log			Save email contents to a specified file (it must be a path to not existing file in existing directory). 
                         It may contain datatime parts (see 'man date'), for example:
-                        --log "/opt/starfish/log/$PROG-%Y%m%d-%H%M%S.log"
+                        --log "/opt/starfish/log/${PROG%.*}-%Y%m%d-%H%M%S.log"
                         NOTE: When running from cron, escape the % chars using the following
-                        --log "/opt/starfish/log/$PROG-\%Y\%m\%d-\%H\%M\%S.log"
+                        --log "/opt/starfish/log/${PROG%.*}-\%Y\%m\%d-\%H\%M\%S.log"
 
 options:
   -h, --help            show this help message and exit
