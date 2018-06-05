@@ -297,7 +297,7 @@ extract_path_and_filename() {
   unset IFS
   PATHARRAYLENGTH=${#PATHARRAY[@]}
   FILENAME=${PATHARRAY[$PATHARRAYLENGTH-1]}
-  for ((i=1; i < ($PATHARRAYLENGTH-1); i++))
+  for ((i=1; i < ($PATHARRAYLENGTH - 1); i++))
   do
     DUPLICATE_FILE_PATH="$DUPLICATE_FILE_PATH/${PATHARRAY[i]}"
   done
