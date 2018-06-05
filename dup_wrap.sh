@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -eo pipefail
 
 ########################################################
 #
@@ -49,6 +49,7 @@ set -euo pipefail
 #                   - Add logging
 # v1.07 June 4, 2018 - Put space after < in for loop in 'extract_path_and_filename' routine (was causing error out on Ubuntu)
 #                    - Update log file syntax
+#                    - Remove set -u at top to accomodate bash 4.3
 
 # Set variables
 readonly VERSION="1.07 June 5, 2018"
