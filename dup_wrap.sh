@@ -149,7 +149,7 @@ Examples:
 $PROG --log "/opt/starfish/log/${PROG%.*}-%Y%m%d-%H%M%S.log" --check-unique-file-size sfvol:
 This will run the duplicate checker, running a quick hash on files located on the sfvol: volumes that have a non unique size. Results will be sent to the "/opt/starfish/log/${PROG%.*}-%Y%m%d-%H%M%S.log" file
 
-$PROG --min-size 25M --email "a@a.pl, b@b.com" sfvol1: sfvol2:
+$PROG --min-size 25M --email "a@a.pl,b@b.com" sfvol1: sfvol2:
 This will run the duplicate checker on both sfvol1 and sfvol2 volumes, looking for duplicates with a minimum size of 25M, and emailing the results to users a@a.pl, b@b.com
  
 $PROG --email "user@company.com"
