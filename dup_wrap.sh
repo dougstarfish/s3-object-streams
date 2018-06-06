@@ -50,9 +50,10 @@ set -eo pipefail
 # v1.07 June 5, 2018 - Put space after < in for loop in 'extract_path_and_filename' routine (was causing error out on Ubuntu)
 #                    - Update log file syntax
 #                    - Remove set -u at top to accomodate bash 4.3
+# v1.08 June 6, 2018 - Change output handling of duplicate_check command to parse for contents between { } rather than rely on mapfile, which was not allowing script to exit upon cmd execution failure
 
 # Set variables
-readonly VERSION="1.07 June 5, 2018"
+readonly VERSION="1.08 June 6, 2018"
 readonly PROG="${0##*/}"
 readonly SFHOME="${SFHOME:-/opt/starfish}"
 readonly LOGDIR="$SFHOME/log/${PROG%.*}"
