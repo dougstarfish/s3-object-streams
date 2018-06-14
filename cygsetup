@@ -1,0 +1,120 @@
+#!/bin/sh
+
+HOME=/home/starfish
+export HOME
+
+if [ $# -ne 1 ]; then
+	echo "must supply starfish version number (e.g. 4.0.4501)"
+	exit 1
+fi
+
+version=$1
+
+echo "Git clone passwod: "
+stty -echo
+read pass
+stty echo
+
+#echo password is $pass
+
+echo "installing python updates"
+python -m pip install --upgrade pip
+pip install virtualenv
+mkdir -p $HOME
+virtualenv $HOME/sfenv
+cd $HOME/sfenv
+. bin/activate
+pip install wheel PyNaCl psycopg2 egg
+
+if [ ! -f /usr/bin/sudo ]; then
+	cat > /usr/bin/sudo <<EOF
+# fake sudo for cygwin
+#!/usr/bin/bash
+
+"$@"
+EOF
+fi
+
+
+git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/starfish
+if [ $? -ne 0 ]; then
+	echo "git glone of starfish failed: ec $?"
+	exit 1
+fi
+git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/sf-packaging
+if [ $? -ne 0 ]; then
+	echo "git glone of sf-packaging failed: ec $?"
+	exit 1
+fi
+git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/ansible
+if [ $? -ne 0 ]; then
+	echo "git glone of ansible failed: ec $?"
+	exit 1
+fi
+
+cd starfish
+
+# cygwin doesn't need nginxor nodejs setup
+perl -i.bak -pe ' s/(    centos_install_nginx)/\#$1/; s/(    centos_install_nodejs)/\#$1/; ' scripts/setup_dev_env.sh
+
+#cygwin comment out things in requirements.txt that don't need to be built
+perl -i.bak -pe 's/^(boto|vmprof|psutil)/\#$1/' agent/requirements/base.txt
+perl -i.bak -pe 's/^(boto|vmprof|psutil)/\#$1/' client/requirements/base.txt
+perl -i.bak -pe 's/^/\#/ if /(^boto|^vmprof|^sqlalchemy|^cryptography|egg=python-swiftclien|pyOpenSSL|future|psutil)/' starfish/requirements/base.txt
+
+patch --forward -p0 < ../patches/setup.py.patch
+if [ $? -ne 0 ]; then
+	echo "patch of setup.py failed"
+	exit 1
+fi
+
+# fix base_service.py - disable vmprof
+perl -i.bak -pe 's/^import vmprof/\#/' starfish/src/sfutils/base_service.py
+
+# turn off wdb
+perl -i.bak -pe 's/^wdb/\#wdb/' starfish/requirements/dev.txt
+	
+# install and fix psutil
+mkdir -p $HOME/sfenv/pymods > /dev/null 2>&1
+cd $HOME/sfenv/pymods
+if [ -d psutil-5.2.0 ]; then
+	rm -rf psutil-5.2.0
+fi
+pip download psutil==5.2.0
+if [ ! -f psutil-5.2.0.tar.gz ]; then
+	echo "pip download of psutil-5.2.0 failed"
+	exit 1
+fi
+# ignore the setup.py error about cygwin support
+tar xfz psutil-5.2.0.tar.gz
+if [ $? -ne 0 ]; then
+	echo "tar extraction of psutil-5.2.0 failed. Check disk space?"
+	exit 1
+fi
+cd psutil-5.2.0
+patch -p1 --forward < ../../patches/cygwin-support.patch
+if [ $? -ne 0 ]; then
+	echo "patch of cygwin-support failed"
+	exit 1
+fi
+patch -p0 --forward < ../../patches/_pswindows.py.patch
+if [ $? -ne 0 ]; then
+	echo "patch of _pswindows.py failed"
+	exit 1
+fi
+echo "Done patching psutil"
+make install
+if [ $? -ne 0 ]; then
+	echo "make install of psutil failed"
+	exit 1
+fi
+
+cd build/lib.cygwin-*
+# copy the built package into virtualenv
+mkdir -p /opt/starfish/lib/virtualenv/sf-cli/lib/python2.7/site-packages > /dev/null 2>&1
+mkdir -p /opt/starfish/lib/virtualenv/sf-agent/lib/python2.7/site-packages > /dev/null 2>&1
+tar cf - psutil | tar -C /opt/starfish/lib/virtualenv/sf-cli/lib/python2.7/site-packages -xvf -
+tar cf - psutil | tar -C /opt/starfish/lib/virtualenv/sf-agent/lib/python2.7/site-packages -xvf -
+
+cd $HOME/sfenv
+
