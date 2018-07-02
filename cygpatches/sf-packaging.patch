@@ -1,0 +1,61 @@
+*** sf-packaging/scripts/install-tgz.sh.orig	2018-06-18 11:03:05.817873000 -0400
+--- sf-packaging/scripts/install-tgz.sh	2018-06-18 11:05:57.615083500 -0400
+***************
+*** 156,161 ****
+--- 156,162 ----
+          return
+      fi
+      local post_install_param="configure"
++     post_install=$(echo "$post_install" | tr -s '/')
+      if [ "${FLAVOR}" == "redhat" ]; then
+          post_install_param="1"
+      fi
+
+*** sf-packaging/packaging-scripts/post-install.sh.orig	2018-06-18 11:07:14.349609900 -0400
+--- sf-packaging/packaging-scripts/post-install.sh	2018-06-18 11:08:01.052840500 -0400
+***************
+*** 43,48 ****
+--- 43,49 ----
+  
+  set_env() {
+      export SFHOME="${PREFIX}${SFHOME:-/opt/starfish}"
++     SFHOME=$(echo $SFHOME | tr -s '/')
+      STARFISH_BIN_DIR=$(readlink -m "${SFHOME}/bin")
+      STARFISH_LIB_DIR=$(readlink -m "${SFHOME}/lib")
+      STARFISH_ETC_DIR=$(readlink -m "${SFHOME}/etc")
+*** sf-packaging/scripts/build_tgz_package.sh	2018-06-19 15:12:05.614870800 -0400
+--- sf-packaging/scripts/build_tgz_package.sh.orig	2018-06-19 15:11:43.927259300 -0400
+***************
+*** 410,416 ****
+      copy_bin_files
+      build_virtenv_executables
+      copy_licenses
+!     # generate_manpages
+      template_files
+  
+      mv requirements/edited.txt "${DIST_DIR}${PKG_SHARE_DIR}/requirements.txt"
+--- 410,416 ----
+      copy_bin_files
+      build_virtenv_executables
+      copy_licenses
+!     generate_manpages
+      template_files
+  
+      mv requirements/edited.txt "${DIST_DIR}${PKG_SHARE_DIR}/requirements.txt"
+***************
+*** 560,566 ****
+      # WARNING: at this point packages old virtenv is not available
+  
+      copy_licenses
+!     # generate_manpages
+      template_files
+      mkdir -p dist
+      copy_packaging_scripts "${SF_PACKAGING_DIR}/packaging-scripts"
+--- 560,566 ----
+      # WARNING: at this point packages old virtenv is not available
+  
+      copy_licenses
+!     generate_manpages
+      template_files
+      mkdir -p dist
+      copy_packaging_scripts "${SF_PACKAGING_DIR}/packaging-scripts"

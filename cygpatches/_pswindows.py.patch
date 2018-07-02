@@ -1,0 +1,23 @@
+*** psutil/_pswindows.py.orig	2018-06-04 17:40:36.508866700 -0400
+--- psutil/_pswindows.py	2018-06-04 17:41:29.574120900 -0400
+***************
+*** 277,283 ****
+  
+  def cpu_count_physical():
+      """Return the number of physical CPUs in the system."""
+!     return cext.cpu_count_phys()
+  
+  
+  def cpu_stats():
+--- 277,287 ----
+  
+  def cpu_count_physical():
+      """Return the number of physical CPUs in the system."""
+!     if cext.cpu_count_phys() > 0:
+!         return cext.cpu_count_phys()
+!     else:
+!         #virtual machine
+!         return 2
+  
+  
+  def cpu_stats():
