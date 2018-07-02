@@ -1,11 +1,14 @@
 #!/bin/sh
+# Copyright Starfish Storage Corp, 2018 - Doug Hughes
+# this script is cloned in using SF-Wrappers into the sfenv
+# and includes a patches directory that is requisite
 
 HOME=/home/starfish
 export HOME
 
 if [ $# -ne 1 ]; then
-	echo "must supply starfish version number (e.g. 4.0.4501)"
-	exit 1
+  echo "must supply starfish version number (e.g. 4.0.4501)"
+  exit 1
 fi
 
 version=$1
@@ -56,6 +59,11 @@ fi
 git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/ansible
 if [ $? -ne 0 ]; then
 	echo "git glone of ansible failed: ec $?"
+	exit 1
+fi
+git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/SF-wrappers
+if [ $? -ne 0 ]; then
+	echo "git glone of SF-wrappers failed: ec $?"
 	exit 1
 fi
 
