@@ -2,6 +2,7 @@
 
 # This script installs datadog, the Datadog postgres integration, sets up
 # nfsstat tests into datadog, and integrates custom multi-core CPU testing
+#
 
 trap "echo [0m" 1 2 3 11 15
 
@@ -103,7 +104,7 @@ if [ -d /etc/dd-agent ]; then
 else
   cd /etc/datadog-agent/conf.d/nfsstat.d
   echo "updating nfsiostat integration..." 
-  sed -e '/nfsiostat_path/a\ \ nfsiostat_path: /usr/sbin/nfsiostat' conf.yaml.example > conf.yaml
+  sed -e '/nfsiostat_path/a\ \ nfsiostat_path: /usr/sbin/nfsiostat' -e 's/\[\]/{}/' conf.yaml.example > conf.yaml
   cd /etc/datadog-agent/conf.d/postgres.d
   echo "updating postgres integration..."
   sed -e '/password/a\ \ \ \ username: datadog\n    password: X83FGVReB5DJmbCSIShu1x8L' conf.yaml.example | sed -e "s/host: localhost/host: $pg_ip/" > conf.yaml
@@ -143,8 +144,14 @@ if [ -d /etc/datadog-agent -a ! -f /etc/datadog-agent/conf.d/process.d/conf.yaml
   ignore_denied_access: True
 EOF
 
-
 fi
+
+# fix datadog to not bind to 5000/5001 which conflicts with Redash
+if [ $(grep -c 5000 /etc/datadog-agent/datadog.yaml) -gt 0 ]; then
+  sudo perl -i.bak  -pe 's/500/1510/' /etc/datadog-agent/datadog.yaml
+fi
+
+# enable extra disk monitoring
 if [ -d /etc/datadog-agent -a ! -f /etc/datadog-agent/conf.d/disk.d/conf.yaml ]; then
   echo Including Datadog extra disk monitoring integration...
   sed -e 's/mount: no/mount: yes/' /etc/datadog-agent/conf.d/disk.d/conf.yaml.default > /etc/datadog-agent/conf.d/disk.d/conf.yaml
