@@ -31,7 +31,7 @@ if [ ! -f /usr/bin/sudo ]; then
 # fake sudo for cygwin
 #!/usr/bin/bash
 
-"$@"
+"\$@"
 EOF
 fi
 
@@ -125,5 +125,24 @@ mkdir -p /opt/starfish/lib/virtualenv/sf-agent/lib/python2.7/site-packages > /de
 tar cf - psutil | tar -C /opt/starfish/lib/virtualenv/sf-cli/lib/python2.7/site-packages -xvf -
 tar cf - psutil | tar -C /opt/starfish/lib/virtualenv/sf-agent/lib/python2.7/site-packages -xvf -
 
-cd $HOME/sfenv
+# setup the development environment
+CD $HOME/sfenv/starfish
+scripts/setup_dev_env.sh
 
+# fix up and execute packaging scripts
+cd $HOME/sfenv/sf-packaging
+perl -i.bak -pe 's/^/#/ if m/\s+generate_manpages$|is_python_version_valid_for/' scripts/build_tgz_package.sh
+#perl -pe 'printf"valid_cygwin = (%ccp27%c,%ccp27m%c,%ccygwin_2_10_0_x86_64%c)\n", 39, 39, 39, 39, 39, 39 if m/valid_solaris/; s/valid_solaris/valid_solaris, valid_cygwin/' scripts/build_tgz_package.sh
+
+scripts/generate-dist.sh
+
+
+
+scripts/install-tgz.sh -s opt/starfish -f redhat build/sf-core-*.dirty+virtenv-1.tar.gz /
+scripts/install-tgz.sh -s opt/starfish -f redhat build/sf-agent-*.dirty+virtenv-1.tar.gz /
+scripts/install-tgz.sh -s opt/starfish -f redhat build/sf-cli-*.dirty+virtenv-1.tar.gz /
+
+# finish up links and cache
+cd /opt/starfish/data/sf-agent/
+chmod 755  post-install.sh
+./post-install.sh 1
