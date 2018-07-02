@@ -78,6 +78,9 @@ perl -i.bak -pe 's/^(boto|vmprof|psutil)/\#$1/' agent/requirements/base.txt
 perl -i.bak -pe 's/^(boto|vmprof|psutil)/\#$1/' client/requirements/base.txt
 perl -i.bak -pe 's/^/\#/ if /(^boto|^vmprof|^sqlalchemy|^cryptography|egg=python-swiftclien|pyOpenSSL|future|psutil)/' starfish/requirements/base.txt
 perl -pe 'if (m/STARFISH_BIN_DIR=/) {printf "    SFHOME=\$(echo \$SFHOME | tr -s %c/%c)\n", 39, 39;}' sf-packaging/packaging-scripts/post-install.sh
+# turn off wdb
+perl -i.bak -pe 's/^wdb/\#wdb/' starfish/requirements/dev.txt
+	
 
 # strip off double slashes in paths. Cygwin doesn't like them
 # also comment out generate manpages from install_tgz
@@ -96,9 +99,6 @@ fi
 # fix base_service.py - disable vmprof
 perl -i.bak -pe '/^import vmprof/^/\#/' starfish/src/sfutils/base_service.py
 
-# turn off wdb
-perl -i.bak -pe 's/^wdb/\#wdb/' starfish/requirements/dev.txt
-	
 # install and fix psutil
 mkdir -p $HOME/sfenv/pymods > /dev/null 2>&1
 cd $HOME/sfenv/pymods
