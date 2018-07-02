@@ -50,9 +50,10 @@ set -eo pipefail
 # v1.07 June 5, 2018 - Put space after < in for loop in 'extract_path_and_filename' routine (was causing error out on Ubuntu)
 #                    - Update log file syntax
 #                    - Remove set -u at top to accomodate bash 4.3
+# v1.08 June 6, 2018 - Change output handling of duplicate_check command to parse for contents between { } rather than rely on mapfile, which was not allowing script to exit upon cmd execution failure
 
 # Set variables
-readonly VERSION="1.07 June 5, 2018"
+readonly VERSION="1.08 June 6, 2018"
 readonly PROG="${0##*/}"
 readonly SFHOME="${SFHOME:-/opt/starfish}"
 readonly LOGDIR="$SFHOME/log/${PROG%.*}"
@@ -120,8 +121,8 @@ $PROG [--email AND/OR --log] [options] VOL:PATH [VOL:PATH ...]]
 NOTE - One or both of the '--email' and '--log' options is required!
 
 Required:
-  --email 		Destination email(s) address (ex. --email "a@a.pl,b@b.com")
-                        If more than one recipient, then quotes are needed around the emails, they should be comma separated with no spaces.
+  --email 		Destination email(s) address (ex. --email a@a.pl,b@b.com)
+                        If more than one recipient, they should be comma separated with no spaces.
 
          --- AND/OR ---
 
@@ -149,10 +150,10 @@ Examples:
 $PROG --log "/opt/starfish/log/${PROG%.*}-%Y%m%d-%H%M%S.log" --check-unique-file-size sfvol:
 This will run the duplicate checker, running a quick hash on files located on the sfvol: volumes that have a non unique size. Results will be sent to the "/opt/starfish/log/${PROG%.*}-%Y%m%d-%H%M%S.log" file
 
-$PROG --min-size 25M --email "a@a.pl,b@b.com" sfvol1: sfvol2:
+$PROG --min-size 25M --email a@a.pl,b@b.com sfvol1: sfvol2:
 This will run the duplicate checker on both sfvol1 and sfvol2 volumes, looking for duplicates with a minimum size of 25M, and emailing the results to users a@a.pl, b@b.com
  
-$PROG --email "user@company.com"
+$PROG --email user@company.com
 This will run the duplicate checker on all Starfish volumes, emailing results to user@company.com.
 
 
@@ -249,32 +250,27 @@ run_duplicate_check() {
   local errorcode
   STARTTIME=$(date +"%H:%M:%S %m/%d/%Y")
   set +e
-  mapfile -t CMD_OUTPUT < <( $CMD_TO_RUN 2>&1 )
+  CMD_OUTPUT=$($CMD_TO_RUN 2>&1)
   errorcode=$?
   set -e
+  DUP_OUTPUT_RESULTS=$(echo $CMD_OUTPUT | awk -F'[{|}]' '{print $2}')
   logprint "==========="
-  logprint "${CMD_OUTPUT[@]}"
+  logprint "$DUP_OUTPUT_RESULTS"
   logprint "==========="
   if [[ $errorcode -ne 0 ]]; then
-    echo -e "duplicate_check command failed. Output follows: ${CMD_OUTPUT[@]}"
-    logprint "duplicate_check command failed. Output follows: ${CMD_OUTPUT[@]}"
-    email_alert "duplicate_check command failed. Output follows: ${CMD_OUTPUT[@]}"
+    echo -e "duplicate_check command failed. Output follows: $CMD_OUTPUT"
+    logprint "duplicate_check command failed. Output follows: $CMD_OUTPUT"
+    email_alert "duplicate_check command failed. Output follows: $CMD_OUTPUT"
     exit 1
   fi
   ENDTIME=$(date +"%H:%M:%S %m/%d/%Y")
 }
 
 parse_output(){
-  for line in "${CMD_OUTPUT[@]}"
-  do
-    if [[ ${line:0:1} == "{" ]]; then
-      IFS=','
-      read -ra OUTPUTARRAY <<< "$line"
-      unset IFS
-      logprint "${OUTPUTARRAY[@]}"
-    fi
-  done
-  COUNT=${OUTPUTARRAY[0]:10}
+  IFS=','
+  read -ra OUTPUTARRAY <<< "$DUP_OUTPUT_RESULTS"
+  unset IFS
+  COUNT=${OUTPUTARRAY[0]:9}
   DUPLICATE_FILE=${OUTPUTARRAY[1]:20}
   SKIP_COUNT=${OUTPUTARRAY[2]:16}
   SIZE_WITH_ORIGINAL_FILE=${OUTPUTARRAY[3]:28}
