@@ -10,7 +10,7 @@ fi
 
 version=$1
 
-echo "Git clone passwod: "
+echo "Git clone password: "
 stty -echo
 read pass
 stty echo
@@ -35,6 +35,13 @@ if [ ! -f /usr/bin/sudo ]; then
 EOF
 fi
 
+# copy the patches from the SF-wrappers directory
+if [ ! -d SF-wrappers/cygpatches ]; then
+  echo "I can't find the SF-wrappers directory. I'm expecting it to be at"
+  echo `pwd`
+  exit 1
+fi
+cp -r SF-wrappers/cygpatches patches
 
 git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/starfish
 if [ $? -ne 0 ]; then
@@ -53,6 +60,7 @@ if [ $? -ne 0 ]; then
 fi
 
 cd starfish
+
 
 # cygwin doesn't need nginxor nodejs setup
 perl -i.bak -pe ' s/(    centos_install_nginx)/\#$1/; s/(    centos_install_nodejs)/\#$1/; ' scripts/setup_dev_env.sh
