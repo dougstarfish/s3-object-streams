@@ -30,7 +30,7 @@
       copy_bin_files
       build_virtenv_executables
       copy_licenses
-!     # generate_manpages
+!     generate_manpages
       template_files
   
       mv requirements/edited.txt "${DIST_DIR}${PKG_SHARE_DIR}/requirements.txt"
@@ -38,7 +38,7 @@
       copy_bin_files
       build_virtenv_executables
       copy_licenses
-!     generate_manpages
+!     # generate_manpages
       template_files
   
       mv requirements/edited.txt "${DIST_DIR}${PKG_SHARE_DIR}/requirements.txt"
@@ -47,7 +47,7 @@
       # WARNING: at this point packages old virtenv is not available
   
       copy_licenses
-!     # generate_manpages
+!     generate_manpages
       template_files
       mkdir -p dist
       copy_packaging_scripts "${SF_PACKAGING_DIR}/packaging-scripts"
@@ -55,7 +55,7 @@
       # WARNING: at this point packages old virtenv is not available
   
       copy_licenses
-!     generate_manpages
+!     # generate_manpages
       template_files
       mkdir -p dist
       copy_packaging_scripts "${SF_PACKAGING_DIR}/packaging-scripts"
