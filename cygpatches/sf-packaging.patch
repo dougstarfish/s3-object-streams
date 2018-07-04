@@ -43,23 +43,6 @@
   
       mv requirements/edited.txt "${DIST_DIR}${PKG_SHARE_DIR}/requirements.txt"
 ***************
-*** 560,566 ****
-      # WARNING: at this point packages old virtenv is not available
-  
-      copy_licenses
-!     generate_manpages
-      template_files
-      mkdir -p dist
-      copy_packaging_scripts "${SF_PACKAGING_DIR}/packaging-scripts"
---- 560,566 ----
-      # WARNING: at this point packages old virtenv is not available
-  
-      copy_licenses
-!     # generate_manpages
-      template_files
-      mkdir -p dist
-      copy_packaging_scripts "${SF_PACKAGING_DIR}/packaging-scripts"
-***************
 *** 518,525 ****
   valid_27 = ('cp27', '${python_27_version}', 'manylinux1_x86_64')
   valid_35 = ('cp35', 'cp35m', 'manylinux1_x86_64')
@@ -79,5 +62,20 @@
   is_valid = any([valid_version in supp for valid_version in valid_versions])
   if not is_valid:
       print('Invalid Python version: {supp}'.format(supp=supp))
-
-
+***************
+*** 560,566 ****
+      # WARNING: at this point packages old virtenv is not available
+  
+      copy_licenses
+!     generate_manpages
+      template_files
+      mkdir -p dist
+      copy_packaging_scripts "${SF_PACKAGING_DIR}/packaging-scripts"
+--- 560,566 ----
+      # WARNING: at this point packages old virtenv is not available
+  
+      copy_licenses
+!     # generate_manpages
+      template_files
+      mkdir -p dist
+      copy_packaging_scripts "${SF_PACKAGING_DIR}/packaging-scripts"
