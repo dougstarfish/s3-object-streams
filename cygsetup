@@ -12,6 +12,9 @@ if [ $# -ne 1 ]; then
 fi
 
 version=$1
+# where might I find the cygwin necessary patches
+mydir=`pwd`
+cygsetupdir=$mydir/`dirname $0`
 
 echo "Git clone password: "
 stty -echo
@@ -39,12 +42,16 @@ EOF
 fi
 
 # copy the patches from the SF-wrappers directory
-if [ ! -d SF-wrappers/cygpatches ]; then
+if [ ! -d $cygsetupdir/../SF-wrappers ]; then
   echo "I can't find the SF-wrappers directory. I'm expecting it to be at"
   echo `pwd`
   exit 1
 fi
-cp -r SF-wrappers/cygpatches patches
+cp -r $cygsetupdir/cygpatches patches
+if [ $? -ne 0 ]; then
+  echo "failed copying patch directory"
+  exit 1
+fi
 
 git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/starfish
 if [ $? -ne 0 ]; then
@@ -77,18 +84,21 @@ perl -i.bak -pe ' s/(    centos_install_nginx)/\#$1/; s/(    centos_install_node
 perl -i.bak -pe 's/^(boto|vmprof|psutil)/\#$1/' agent/requirements/base.txt
 perl -i.bak -pe 's/^(boto|vmprof|psutil)/\#$1/' client/requirements/base.txt
 perl -i.bak -pe 's/^/\#/ if /(^boto|^vmprof|^sqlalchemy|^cryptography|egg=python-swiftclien|pyOpenSSL|future|psutil)/' starfish/requirements/base.txt
-perl -pe 'if (m/STARFISH_BIN_DIR=/) {printf "    SFHOME=\$(echo \$SFHOME | tr -s %c/%c)\n", 39, 39;}' sf-packaging/packaging-scripts/post-install.sh
+# remove extra /'s from post-install.sh - handled by patch
+#perl -i.bak -pe 'if (m/STARFISH_BIN_DIR=/) {printf "    SFHOME=\$(echo \$SFHOME | tr -s %c/%c)\n", 39, 39;}' ../sf-packaging/packaging-scripts/post-install.sh
 # turn off wdb
 perl -i.bak -pe 's/^wdb/\#wdb/' starfish/requirements/dev.txt
 	
 
 # strip off double slashes in paths. Cygwin doesn't like them
 # also comment out generate manpages from install_tgz
-patch -p0 --forward < ../patches/sf-packaging.patch
+pushd ..
+patch -p0 --forward < patches/sf-packaging.patch
 if [ $? -ne 0 ]; then
 	echo "patch of sf-packaging installers failed"
 	exit 1
 fi
+popd
 
 patch --forward -p0 < ../patches/setup.py.patch
 if [ $? -ne 0 ]; then
@@ -142,12 +152,12 @@ tar cf - psutil | tar -C /opt/starfish/lib/virtualenv/sf-cli/lib/python2.7/site-
 tar cf - psutil | tar -C /opt/starfish/lib/virtualenv/sf-agent/lib/python2.7/site-packages -xvf -
 
 # setup the development environment
-CD $HOME/sfenv/starfish
+cd $HOME/sfenv/starfish
 scripts/setup_dev_env.sh
 
-# fix up and execute packaging scripts
-cd $HOME/sfenv/sf-packaging
-perl -i.bak -pe 's/^/#/ if m/\s+generate_manpages$|is_python_version_valid_for/' scripts/build_tgz_package.sh
+# fix up and execute packaging scripts - fixed using 'patch'
+#cd $HOME/sfenv/sf-packaging
+#perl -i.bak -pe 's/^/#/ if m/\s+generate_manpages$|is_python_version_valid_for/' scripts/build_tgz_package.sh
 #perl -pe 'printf"valid_cygwin = (%ccp27%c,%ccp27m%c,%ccygwin_2_10_0_x86_64%c)\n", 39, 39, 39, 39, 39, 39 if m/valid_solaris/; s/valid_solaris/valid_solaris, valid_cygwin/' scripts/build_tgz_package.sh
 
 scripts/generate-dist.sh
