@@ -59,3 +59,25 @@
       template_files
       mkdir -p dist
       copy_packaging_scripts "${SF_PACKAGING_DIR}/packaging-scripts"
+***************
+*** 518,525 ****
+  valid_27 = ('cp27', '${python_27_version}', 'manylinux1_x86_64')
+  valid_35 = ('cp35', 'cp35m', 'manylinux1_x86_64')
+  valid_36 = ('cp36', 'cp36m', 'manylinux1_x86_64')
+  valid_solaris = ('cp27', 'cp27mu', 'solaris_2_11_i86pc_32bit')
+! valid_versions = [valid_27, valid_35, valid_36, valid_solaris]
+  is_valid = any([valid_version in supp for valid_version in valid_versions])
+  if not is_valid:
+      print('Invalid Python version: {supp}'.format(supp=supp))
+--- 518,526 ----
+  valid_27 = ('cp27', '${python_27_version}', 'manylinux1_x86_64')
+  valid_35 = ('cp35', 'cp35m', 'manylinux1_x86_64')
+  valid_36 = ('cp36', 'cp36m', 'manylinux1_x86_64')
++ valid_cygwin = ('cp27', 'cp27m', 'cygwin_2_10_0_x86_64')
+  valid_solaris = ('cp27', 'cp27mu', 'solaris_2_11_i86pc_32bit')
+! valid_versions = [valid_27, valid_35, valid_36, valid_solaris, valid_cygwin]
+  is_valid = any([valid_version in supp for valid_version in valid_versions])
+  if not is_valid:
+      print('Invalid Python version: {supp}'.format(supp=supp))
+
+
