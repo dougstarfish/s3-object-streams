@@ -1,0 +1,10 @@
+#!/bin/sh
+
+cd /home/starfish/sfenv
+
+. bin/activate
+
+/opt/starfish/bin/agent start
+sleep 5
+/opt/starfish/bin/agent status
+
