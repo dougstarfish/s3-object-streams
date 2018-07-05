@@ -30,7 +30,7 @@ mkdir -p $HOME
 virtualenv $HOME/sfenv
 cd $HOME/sfenv
 . bin/activate
-pip install wheel PyNaCl psycopg2 egg
+pip install wheel PyNaCl psycopg2 egg future
 
 if [ ! -f /usr/bin/sudo ]; then
 	cat > /usr/bin/sudo <<EOF
@@ -107,7 +107,12 @@ if [ $? -ne 0 ]; then
 fi
 
 # fix base_service.py - disable vmprof
-perl -i.bak -pe '/^import vmprof/^/\#/' starfish/src/sfutils/base_service.py
+#perl -i.bak -pe '/^import vmprof/^/\#/' starfish/src/sfutils/base_service.py
+patch --forward -p0 < ../patches/base_service.patch
+if [ $? -ne 0 ]; then
+	echo "patch starfish/src/sfutils/base_service.py failed"
+	exit 1
+fi
 
 # install and fix psutil
 mkdir -p $HOME/sfenv/pymods > /dev/null 2>&1
