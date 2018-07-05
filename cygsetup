@@ -160,15 +160,25 @@ scripts/setup_dev_env.sh
 #perl -i.bak -pe 's/^/#/ if m/\s+generate_manpages$|is_python_version_valid_for/' scripts/build_tgz_package.sh
 #perl -pe 'printf"valid_cygwin = (%ccp27%c,%ccp27m%c,%ccygwin_2_10_0_x86_64%c)\n", 39, 39, 39, 39, 39, 39 if m/valid_solaris/; s/valid_solaris/valid_solaris, valid_cygwin/' scripts/build_tgz_package.sh
 
+cd $HOME/sfenv/sf-packaging
 scripts/generate-dist.sh
 
-
-
-scripts/install-tgz.sh -s opt/starfish -f redhat build/sf-core-*.dirty+virtenv-1.tar.gz /
-scripts/install-tgz.sh -s opt/starfish -f redhat build/sf-agent-*.dirty+virtenv-1.tar.gz /
-scripts/install-tgz.sh -s opt/starfish -f redhat build/sf-cli-*.dirty+virtenv-1.tar.gz /
-
+./build-package.sh sf-cli tgz --method virtenv
+./build-package.sh sf-agent tgz --method= virtenv
+./build-package.sh sf-core tgz --method virtenv
+scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-core-*dirty*.tar.gz /
 # finish up links and cache
-cd /opt/starfish/data/sf-agent/
-chmod 755  post-install.sh
-./post-install.sh 1
+sh /opt/starfish/data/sf-core/post-install.sh 1
+scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-agent-*dirty*.tar.gz /
+# finish up links and cache
+sh /opt/starfish/data/sf-agent/post-install.sh 1
+scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-cli-*dirty*.tar.gz /
+# finish up links and cache
+sh /opt/starfish/data/sf-cli/post-install.sh 1
+
+echo "building tarball"
+cd /
+tar cfz /tmp/starfish-${version}.tar.gz /opt/starfish /home/starfish
+echo "SUCCESS!"
+exit 0
+
