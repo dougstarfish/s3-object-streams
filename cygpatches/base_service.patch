@@ -1,0 +1,20 @@
+*** starfish/src/sfutils/base_service.py.orig  2018-07-04 21:32:59.059616400 -0400
+--- starfish/src/sfutils/base_service.py       2018-07-04 21:33:11.497140900 -0400
+***************
+*** 44,50 ****
+  from threading import Thread
+
+  import six
+! import vmprof
+  import yappi
+  from six.moves import BaseHTTPServer
+  from six.moves import cStringIO
+--- 44,50 ----
+  from threading import Thread
+
+  import six
+! #import vmprof
+  import yappi
+  from six.moves import BaseHTTPServer
+  from six.moves import cStringIO
+
