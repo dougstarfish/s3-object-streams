@@ -184,6 +184,10 @@ sh /opt/starfish/data/sf-cli/post-install.sh 1
 echo "building tarball"
 cd /
 tar cfz /tmp/starfish-${version}.tar.gz /opt/starfish /home/starfish
+
+echo "copy in startfish"
+mkdir -p /usr/local/bin > /dev/null 2>&1
+cp -r $cygsetupdir/cygpatches/startfish /usr/local/bin/startfish
 echo "SUCCESS!"
 exit 0
 
