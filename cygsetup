@@ -137,9 +137,15 @@ if [ $? -ne 0 ]; then
 	echo "patch of cygwin-support failed"
 	exit 1
 fi
+# this patch may not be needed because _pscygwin.py should be used
 patch -p0 --forward < ../../patches/_pswindows.py.patch
 if [ $? -ne 0 ]; then
 	echo "patch of _pswindows.py failed"
+	exit 1
+fi
+patch -p0 --forward < ../../patches/_pscygwin.py.patch
+if [ $? -ne 0 ]; then
+	echo "patch of _pscygwin.py failed"
 	exit 1
 fi
 echo "Done patching psutil"
@@ -177,6 +183,12 @@ scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-agent-*dirty*.tar.g
 sh /opt/starfish/data/sf-agent/post-install.sh 1
 scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-cli-*dirty*.tar.gz /
 sh /opt/starfish/data/sf-cli/post-install.sh 1
+
+# for some reason future and builtins doesn't get copied in by the package builder
+cd $SFHOME/sfenv
+find lib -name builtins | xargs tar cf - | (cd /opt/starfish/lib/virtualenv/sf-agent; tar xf -)
+find lib -name future\* | xargs tar cf - | (cd /opt/starfish/lib/virtualenv/sf-agent; tar xf -)
+
 
 echo "building tarball"
 cd /
