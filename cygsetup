@@ -169,16 +169,13 @@ cd $HOME/sfenv/sf-packaging
 scripts/generate-dist.sh
 
 ./build-package.sh sf-cli tgz --method virtenv
-./build-package.sh sf-agent tgz --method= virtenv
+./build-package.sh sf-agent tgz --method virtenv
 ./build-package.sh sf-core tgz --method virtenv
 scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-core-*dirty*.tar.gz /
-# finish up links and cache
 sh /opt/starfish/data/sf-core/post-install.sh 1
 scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-agent-*dirty*.tar.gz /
-# finish up links and cache
 sh /opt/starfish/data/sf-agent/post-install.sh 1
 scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-cli-*dirty*.tar.gz /
-# finish up links and cache
 sh /opt/starfish/data/sf-cli/post-install.sh 1
 
 echo "building tarball"
