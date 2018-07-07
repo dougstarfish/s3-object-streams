@@ -186,8 +186,8 @@ sh /opt/starfish/data/sf-cli/post-install.sh 1
 
 # for some reason future and builtins doesn't get copied in by the package builder
 cd $SFHOME/sfenv
-find lib -name builtins | xargs tar cf - | (cd /opt/starfish/lib/virtualenv/sf-agent; tar xf -)
-find lib -name future\* | xargs tar cf - | (cd /opt/starfish/lib/virtualenv/sf-agent; tar xf -)
+find lib -name builtins | xargs tar -cf - | (cd /opt/starfish/lib/virtualenv/sf-agent; tar -xf -)
+find lib -name future* | xargs tar -cf - | (cd /opt/starfish/lib/virtualenv/sf-agent; tar -xf -)
 
 
 echo "building tarball"
