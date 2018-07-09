@@ -169,7 +169,10 @@ tar cf - psutil | tar -C /opt/starfish/lib/virtualenv/sf-agent/lib/python2.7/sit
 # setup the development environment
 cd $HOME/sfenv/starfish
 # Fix versions. do not run gen-version; remove it
-rm ../sf-packaging/gen-version
+#rm ../sf-packaging/gen-version
+# hack to work around bug in sf-packaging 2018-07-09 - doug
+echo "cat core_v4/version" > ../sf-packaging/gen-version
+
 rm gen-version
 echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/sf-packaging/core/version
 echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/sf-packaging/core_v4/version
@@ -191,11 +194,11 @@ scripts/generate-dist.sh
 ./build-package.sh sf-cli tgz --method virtenv
 ./build-package.sh sf-agent tgz --method virtenv
 ./build-package.sh sf-core tgz --method virtenv
-scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-core-*dirty*.tar.gz /
+scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-core-*${VERSION}*.tar.gz /
 sh /opt/starfish/data/sf-core/post-install.sh 1
-scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-agent-*dirty*.tar.gz /
+scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-agent-*${VERSION}*.tar.gz /
 sh /opt/starfish/data/sf-agent/post-install.sh 1
-scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-cli-*dirty*.tar.gz /
+scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-cli-*${VERSION}*.tar.gz /
 sh /opt/starfish/data/sf-cli/post-install.sh 1
 
 # for some reason future and builtins doesn't get copied in by the package builder
