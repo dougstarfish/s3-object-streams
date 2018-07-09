@@ -6,12 +6,16 @@
 HOME=/home/starfish
 export HOME
 
-if [ $# -ne 1 ]; then
-  echo "must supply starfish version number (e.g. 4.0.4501)"
+if [ $# -ne 2 ]; then
+  echo "Usage: must supply starfish version number (e.g. 4.0.4622)"
+  echo ' $1 = major (e.g. 4622)'
+  echo ' $2 = minor (e.g. 2f23831)'
+
   exit 1
 fi
 
-version=$1
+VERSION=$1
+MINOR=$2
 # where might I find the cygwin necessary patches
 mydir=`pwd`
 cygsetupdir=$mydir/`dirname $0`
@@ -53,22 +57,22 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/starfish
+git clone -q -o $VERSION https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/starfish
 if [ $? -ne 0 ]; then
 	echo "git glone of starfish failed: ec $?"
 	exit 1
 fi
-git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/sf-packaging
+git clone -q -o $VERSION https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/sf-packaging
 if [ $? -ne 0 ]; then
 	echo "git glone of sf-packaging failed: ec $?"
 	exit 1
 fi
-git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/ansible
+git clone -q -o $VERSION https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/ansible
 if [ $? -ne 0 ]; then
 	echo "git glone of ansible failed: ec $?"
 	exit 1
 fi
-git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/SF-wrappers
+git clone -q -o $VERSION https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/SF-wrappers
 if [ $? -ne 0 ]; then
 	echo "git glone of SF-wrappers failed: ec $?"
 	exit 1
@@ -164,14 +168,24 @@ tar cf - psutil | tar -C /opt/starfish/lib/virtualenv/sf-agent/lib/python2.7/sit
 
 # setup the development environment
 cd $HOME/sfenv/starfish
+# Fix versions. do not run gen-version; remove it
+rm ../sf-packaging/gen-version
+rm gen-version
+echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/sf-packaging/core/version
+echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/sf-packaging/core_v4/version
+echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/starfish/client/version
+echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/starfish/agent/version
+echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/starfish/redash/version
+echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/starfish/starfish/version
 scripts/setup_dev_env.sh
 
-# fix up and execute packaging scripts - fixed using 'patch'
-#cd $HOME/sfenv/sf-packaging
-#perl -i.bak -pe 's/^/#/ if m/\s+generate_manpages$|is_python_version_valid_for/' scripts/build_tgz_package.sh
-#perl -pe 'printf"valid_cygwin = (%ccp27%c,%ccp27m%c,%ccygwin_2_10_0_x86_64%c)\n", 39, 39, 39, 39, 39, 39 if m/valid_solaris/; s/valid_solaris/valid_solaris, valid_cygwin/' scripts/build_tgz_package.sh
 
+###############################
+# Build distribution packages #
+###############################
 cd $HOME/sfenv/sf-packaging
+
+
 scripts/generate-dist.sh
 
 ./build-package.sh sf-cli tgz --method virtenv
@@ -192,7 +206,7 @@ find lib -name future* | xargs tar -cf - | (cd /opt/starfish/lib/virtualenv/sf-a
 
 echo "building tarball"
 cd /
-tar cfz /tmp/starfish-${version}.tar.gz /opt/starfish /home/starfish
+tar cfz /tmp/starfish-${VERSION}-${MINOR}.tar.gz /opt/starfish /home/starfish
 
 echo "copy in startfish"
 mkdir -p /usr/local/bin > /dev/null 2>&1
