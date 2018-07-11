@@ -148,7 +148,7 @@ fi
 
 # fix datadog to not bind to 5000/5001 which conflicts with Redash
 if [ $(grep -c 5000 /etc/datadog-agent/datadog.yaml) -gt 0 ]; then
-  sudo perl -i.bak  -pe 's/500/1510/' /etc/datadog-agent/datadog.yaml
+  perl -i.bak  -pe 'if (m/(cmd_port:|expvar_port:)/) {s/^#//; s/500/1510/}' /etc/datadog-agent/datadog.yaml
 fi
 
 # enable extra disk monitoring
