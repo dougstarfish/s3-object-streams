@@ -1,0 +1,36 @@
+*** psutil/_pscygwin.py.orig	2018-07-06 19:06:12.576281800 -0400
+--- psutil/_pscygwin.py	2018-07-06 19:06:42.060730700 -0400
+***************
+*** 334,340 ****
+  
+          if num == 0:
+              # mimic os.cpu_count()
+!             return None
+          return num
+  
+  
+--- 334,340 ----
+  
+          if num == 0:
+              # mimic os.cpu_count()
+!             return 2
+          return num
+  
+  
+***************
+*** 360,366 ****
+                      current_info[key] = int(value)
+  
+      # mimic os.cpu_count()
+!     return sum(mapping.values()) or None
+  
+  
+  # TODO: Works mostly the same as on Linux, but softirq is not available;
+--- 360,366 ----
+                      current_info[key] = int(value)
+  
+      # mimic os.cpu_count()
+!     return sum(mapping.values()) or 2
+  
+  
+  # TODO: Works mostly the same as on Linux, but softirq is not available;

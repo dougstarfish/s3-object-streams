@@ -1,16 +1,26 @@
 #!/bin/sh
+# Copyright Starfish Storage Corp, 2018 - Doug Hughes
+# this script is cloned in using SF-Wrappers into the sfenv
+# and includes a patches directory that is requisite
 
 HOME=/home/starfish
 export HOME
 
-if [ $# -ne 1 ]; then
-	echo "must supply starfish version number (e.g. 4.0.4501)"
-	exit 1
+if [ $# -ne 2 ]; then
+  echo "Usage: must supply starfish version number (e.g. 4.0.4622)"
+  echo ' $1 = major (e.g. 4622)'
+  echo ' $2 = minor (e.g. 2f23831)'
+
+  exit 1
 fi
 
-version=$1
+VERSION=$1
+MINOR=$2
+# where might I find the cygwin necessary patches
+mydir=`pwd`
+cygsetupdir=$mydir/`dirname $0`
 
-echo "Git clone passwod: "
+echo "Git clone password: "
 stty -echo
 read pass
 stty echo
@@ -24,35 +34,52 @@ mkdir -p $HOME
 virtualenv $HOME/sfenv
 cd $HOME/sfenv
 . bin/activate
-pip install wheel PyNaCl psycopg2 egg
+pip install wheel PyNaCl psycopg2 egg future
 
 if [ ! -f /usr/bin/sudo ]; then
 	cat > /usr/bin/sudo <<EOF
 # fake sudo for cygwin
 #!/usr/bin/bash
 
-"$@"
+"\$@"
 EOF
 fi
 
+# copy the patches from the SF-wrappers directory
+if [ ! -d $cygsetupdir/../SF-wrappers ]; then
+  echo "I can't find the SF-wrappers directory. I'm expecting it to be at"
+  echo `pwd`
+  exit 1
+fi
+cp -r $cygsetupdir/cygpatches patches
+if [ $? -ne 0 ]; then
+  echo "failed copying patch directory"
+  exit 1
+fi
 
-git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/starfish
+git clone -q -o $VERSION https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/starfish
 if [ $? -ne 0 ]; then
 	echo "git glone of starfish failed: ec $?"
 	exit 1
 fi
-git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/sf-packaging
+git clone -q -o $VERSION https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/sf-packaging
 if [ $? -ne 0 ]; then
 	echo "git glone of sf-packaging failed: ec $?"
 	exit 1
 fi
-git clone -q -o $version https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/ansible
+git clone -q -o $VERSION https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/ansible
 if [ $? -ne 0 ]; then
 	echo "git glone of ansible failed: ec $?"
 	exit 1
 fi
+git clone -q -o $VERSION https://dhughes%40starfishstorage.com:$pass@github.com/StarfishStorage/SF-wrappers
+if [ $? -ne 0 ]; then
+	echo "git glone of SF-wrappers failed: ec $?"
+	exit 1
+fi
 
 cd starfish
+
 
 # cygwin doesn't need nginxor nodejs setup
 perl -i.bak -pe ' s/(    centos_install_nginx)/\#$1/; s/(    centos_install_nodejs)/\#$1/; ' scripts/setup_dev_env.sh
@@ -61,15 +88,21 @@ perl -i.bak -pe ' s/(    centos_install_nginx)/\#$1/; s/(    centos_install_node
 perl -i.bak -pe 's/^(boto|vmprof|psutil)/\#$1/' agent/requirements/base.txt
 perl -i.bak -pe 's/^(boto|vmprof|psutil)/\#$1/' client/requirements/base.txt
 perl -i.bak -pe 's/^/\#/ if /(^boto|^vmprof|^sqlalchemy|^cryptography|egg=python-swiftclien|pyOpenSSL|future|psutil)/' starfish/requirements/base.txt
-perl -pe 'if (m/STARFISH_BIN_DIR=/) {printf "    SFHOME=\$(echo \$SFHOME | tr -s %c/%c)\n", 39, 39;}' sf-packaging/packaging-scripts/post-install.sh
+# remove extra /'s from post-install.sh - handled by patch
+#perl -i.bak -pe 'if (m/STARFISH_BIN_DIR=/) {printf "    SFHOME=\$(echo \$SFHOME | tr -s %c/%c)\n", 39, 39;}' ../sf-packaging/packaging-scripts/post-install.sh
+# turn off wdb
+perl -i.bak -pe 's/^wdb/\#wdb/' starfish/requirements/dev.txt
+	
 
 # strip off double slashes in paths. Cygwin doesn't like them
 # also comment out generate manpages from install_tgz
-patch -p0 --forward < ../patches/sf-packaging.patch
+pushd ..
+patch -p0 --forward < patches/sf-packaging.patch
 if [ $? -ne 0 ]; then
 	echo "patch of sf-packaging installers failed"
 	exit 1
 fi
+popd
 
 patch --forward -p0 < ../patches/setup.py.patch
 if [ $? -ne 0 ]; then
@@ -78,11 +111,13 @@ if [ $? -ne 0 ]; then
 fi
 
 # fix base_service.py - disable vmprof
-perl -i.bak -pe '/^import vmprof/^/\#/' starfish/src/sfutils/base_service.py
+#perl -i.bak -pe '/^import vmprof/^/\#/' starfish/src/sfutils/base_service.py
+patch --forward -p0 < ../patches/base_service.patch
+if [ $? -ne 0 ]; then
+	echo "patch starfish/src/sfutils/base_service.py failed"
+	exit 1
+fi
 
-# turn off wdb
-perl -i.bak -pe 's/^wdb/\#wdb/' starfish/requirements/dev.txt
-	
 # install and fix psutil
 mkdir -p $HOME/sfenv/pymods > /dev/null 2>&1
 cd $HOME/sfenv/pymods
@@ -106,9 +141,15 @@ if [ $? -ne 0 ]; then
 	echo "patch of cygwin-support failed"
 	exit 1
 fi
+# this patch may not be needed because _pscygwin.py should be used
 patch -p0 --forward < ../../patches/_pswindows.py.patch
 if [ $? -ne 0 ]; then
 	echo "patch of _pswindows.py failed"
+	exit 1
+fi
+patch -p0 --forward < ../../patches/_pscygwin.py.patch
+if [ $? -ne 0 ]; then
+	echo "patch of _pscygwin.py failed"
 	exit 1
 fi
 echo "Done patching psutil"
@@ -125,5 +166,54 @@ mkdir -p /opt/starfish/lib/virtualenv/sf-agent/lib/python2.7/site-packages > /de
 tar cf - psutil | tar -C /opt/starfish/lib/virtualenv/sf-cli/lib/python2.7/site-packages -xvf -
 tar cf - psutil | tar -C /opt/starfish/lib/virtualenv/sf-agent/lib/python2.7/site-packages -xvf -
 
+# setup the development environment
+cd $HOME/sfenv/starfish
+# Fix versions. do not run gen-version; remove it
+#rm ../sf-packaging/gen-version
+# hack to work around bug in sf-packaging 2018-07-09 - doug
+echo "cat core_v4/version" > ../sf-packaging/gen-version
+
+rm gen-version
+echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/sf-packaging/core/version
+echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/sf-packaging/core_v4/version
+echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/starfish/client/version
+echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/starfish/agent/version
+echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/starfish/redash/version
+echo "4.0.${VERSION}+${MINOR}" > $HOME/sfenv/starfish/starfish/version
+scripts/setup_dev_env.sh
+
+
+###############################
+# Build distribution packages #
+###############################
+cd $HOME/sfenv/sf-packaging
+
+
+scripts/generate-dist.sh
+
+./build-package.sh sf-cli tgz --method virtenv
+./build-package.sh sf-agent tgz --method virtenv
+./build-package.sh sf-core tgz --method virtenv
+scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-core-*${VERSION}*.tar.gz /
+sh /opt/starfish/data/sf-core/post-install.sh 1
+scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-agent-*${VERSION}*.tar.gz /
+sh /opt/starfish/data/sf-agent/post-install.sh 1
+scripts/install-tgz.sh -n -s opt/starfish -f redhat build/sf-cli-*${VERSION}*.tar.gz /
+sh /opt/starfish/data/sf-cli/post-install.sh 1
+
+# for some reason future and builtins doesn't get copied in by the package builder
 cd $HOME/sfenv
+find lib -name builtins | xargs tar -cf - | (cd /opt/starfish/lib/virtualenv/sf-agent; tar -xf -)
+find lib -name future* | xargs tar -cf - | (cd /opt/starfish/lib/virtualenv/sf-agent; tar -xf -)
+
+
+echo "building tarball"
+cd /
+tar cfz /tmp/starfish-${VERSION}-${MINOR}.tar.gz /opt/starfish /home/starfish
+
+echo "copy in startfish"
+mkdir -p /usr/local/bin > /dev/null 2>&1
+cp -r $cygsetupdir/cygpatches/startfish /usr/local/bin/startfish
+echo "SUCCESS!"
+exit 0
 
