@@ -189,7 +189,7 @@ if [ ! -f /root/.pgpass -o "$cnt" = "0" ]; then
   if [[ $uid == 0 ]]; then
     # make and use a .pgpass entry
     echo "${pg_dest}:postgres:starfish:$pg_pass" >> /root/.pgpass
-    psql -w starfish -h $pg_dest -d postgres -qc "create user datadog with password \'X83FGVReB5DJmbCSIShu1x8L\';
+    psql -w starfish -h $pg_ip -d postgres -qc "create user datadog with password 'X83FGVReB5DJmbCSIShu1x8L';
 grant SELECT ON pg_stat_database to datadog;" 
   else
     sudo -u postgres psql -qc "create user datadog with password 'X83FGVReB5DJmbCSIShu1x8L';
