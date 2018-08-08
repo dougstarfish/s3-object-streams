@@ -47,7 +47,7 @@
 rpm -qV starfish
 if [ $? -eq 0 ]; then
 	echo "starfish is already installed. Exiting."
-	#exit 0
+	exit 0
 fi
 
 pgcount=`rpm -qa | egrep -c '^postgresql'`
@@ -76,7 +76,7 @@ for port in 5432 5433; do
 	# echo "checking port $port"
 	stuff=`lsof -i :$port`
 	if [[ $? == 0 ]]; then 
-		echo -e "[1mSomething is running on port $port. This will conflict with Postgres. [0m"
+		echo -e "[1mSomething is already running on port $port. This will conflict with Postgres. [0m"
 		echo -e "$stuff" | head -n 2
 		echo "-----"
 	fi
