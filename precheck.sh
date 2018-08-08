@@ -43,11 +43,12 @@
 # Change Log
 # v1.0 Aug 9, 2018 - doug; pre-check fro STAR-5302
 
+OK=1
 
 rpm -qV starfish
 if [ $? -eq 0 ]; then
 	echo "starfish is already installed. Exiting."
-	exit 0
+	#exit 0
 fi
 
 pgcount=`rpm -qa | egrep -c '^postgresql'`
@@ -59,6 +60,7 @@ if [[ $pgcount > 0 ]]; then
 	else
 		echo Postgres service is not running. should be ok.
 	fi
+	OK=0
 fi
 
 echo "checking open ports"
@@ -69,6 +71,7 @@ for port in 80 443 8080; do
 		echo -e "[1mA web service is running on port $port This will conflict with Starfish. [0m"
 		echo -e "$stuff" | head -n 2
 		echo "-----"
+		OK=0
 	fi
 done
 
@@ -79,6 +82,7 @@ for port in 5432 5433; do
 		echo -e "[1mSomething is already running on port $port. This will conflict with Postgres. [0m"
 		echo -e "$stuff" | head -n 2
 		echo "-----"
+		OK=0
 	fi
 done
 
@@ -90,5 +94,13 @@ for port in `seq 30000 30100`; do
 		echo "[1m A service is using port $port. This could conflict with Starfish:[0m"
 		echo -e "$stuff" | head -n 2
 		echo "------"
+		OK=0
 	fi
 done
+
+if [[ $OK == 0 ]]; then
+	echo 
+	echo "[31mFound Potential issues during precheck. Please address.[0m"
+else
+	echo "[[32mPrecheck looks OK. No conflicts[0m"
+fi
